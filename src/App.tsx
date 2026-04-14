@@ -118,11 +118,11 @@ function App() {
               <div className="input-group">
                 <span className="input-label">Дата рождения</span>
                 <div style={{ position: 'relative' }}>
-                  <CalendarDays size={16} style={{ position: 'absolute', left: '16px', top: '16px', color: '#8E8E93' }} />
+                  <CalendarDays size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#8E8E93', pointerEvents: 'none' }} />
                   <input 
                     type="date" 
                     className="input-field" 
-                    style={{ paddingLeft: '40px' }}
+                    style={{ paddingLeft: '44px' }}
                     value={user.birthDate}
                     onChange={(e) => setUser({...user, birthDate: e.target.value})}
                     required 
@@ -133,12 +133,12 @@ function App() {
               <div className="input-group">
                 <span className="input-label">Ник в Telegram</span>
                 <div style={{ position: 'relative' }}>
-                  <AtSign size={16} style={{ position: 'absolute', left: '16px', top: '16px', color: '#8E8E93' }} />
+                  <AtSign size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#8E8E93', pointerEvents: 'none' }} />
                   <input 
                     type="text" 
                     className="input-field" 
                     placeholder="anya_ivanova"
-                    style={{ paddingLeft: '40px' }}
+                    style={{ paddingLeft: '44px' }}
                     value={user.tgNick}
                     onChange={(e) => setUser({...user, tgNick: e.target.value})}
                     required 
@@ -149,12 +149,12 @@ function App() {
               <div className="input-group">
                 <span className="input-label">Почта</span>
                 <div style={{ position: 'relative' }}>
-                  <Mail size={16} style={{ position: 'absolute', left: '16px', top: '16px', color: '#8E8E93' }} />
+                  <Mail size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#8E8E93', pointerEvents: 'none' }} />
                   <input 
                     type="email" 
                     className="input-field" 
                     placeholder="email@example.com"
-                    style={{ paddingLeft: '40px' }}
+                    style={{ paddingLeft: '44px' }}
                     value={user.email}
                     onChange={(e) => setUser({...user, email: e.target.value})}
                     required 
@@ -165,12 +165,12 @@ function App() {
               <div className="input-group">
                 <span className="input-label">Придумайте пароль</span>
                 <div style={{ position: 'relative' }}>
-                  <LockKeyhole size={16} style={{ position: 'absolute', left: '16px', top: '16px', color: '#8E8E93' }} />
+                  <LockKeyhole size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#8E8E93', pointerEvents: 'none' }} />
                   <input 
                     type="password" 
                     className="input-field" 
                     placeholder="••••••••"
-                    style={{ paddingLeft: '40px' }}
+                    style={{ paddingLeft: '44px' }}
                     value={user.password}
                     onChange={(e) => setUser({...user, password: e.target.value})}
                     required 

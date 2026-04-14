@@ -15,8 +15,9 @@
   --radius-action: 16px;
   --radius-pill: 100px;
   
-  --safe-area-top: env(safe-area-inset-top, 0px);
-  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  /* Increased safe area top to ensure visibility in Telegram */
+  --safe-area-top: env(safe-area-inset-top, 24px); 
+  --safe-area-bottom: env(safe-area-inset-bottom, 20px);
 }
 
 * {
@@ -96,8 +97,9 @@ body {
 
 .header-centered {
   text-align: center;
-  margin-bottom: 20px;
-  margin-top: 10px;
+  margin-bottom: 24px;
+  padding-top: var(--safe-area-top);
+  width: 100%;
 }
 .header-title {
   font-size: 26px;
@@ -174,7 +176,8 @@ body {
 }
 .input-field {
   width: 100%;
-  padding: 14px;
+  height: 52px; /* Fixed height for all fields */
+  padding: 0 16px;
   border-radius: var(--radius-action);
   border: 1px solid rgba(255,255,255,0.08);
   background: rgba(0, 0, 0, 0.2);
@@ -182,6 +185,12 @@ body {
   font-family: inherit;
   color: var(--text-primary);
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+.input-field[type="date"] {
+  padding-top: 0;
+  padding-bottom: 0;
 }
 .input-field[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
