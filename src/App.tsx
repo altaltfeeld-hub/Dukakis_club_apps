@@ -9,11 +9,18 @@ import {
   LockKeyhole, 
   CalendarDays, 
   ChevronLeft,
-  ShieldX
+  ShieldX,
+  Shield,
+  Ban,
+  CheckCircle,
+  Download,
+  Trash2
 } from 'lucide-react';
 import clsx from 'clsx';
 import { db } from './firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
+
+const SUPER_ADMIN = 'l_turgeneva';
 
 /* ============================
    SPLASH SCREEN
@@ -137,6 +144,86 @@ function ProfileTab({ user, onLogout }: { user: any, onLogout: () => void }) {
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>@{user.tgNick}</p>
       </div>
       <button className="main-btn secondary-btn" onClick={onLogout}>Выйти из аккаунта</button>
+    </div>
+  );
+}
+
+/* ============================
+   ADMIN TAB (только для l_turgeneva)
+   ============================ */
+function AdminTab() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadUsers = async () => {
+    setLoading(true);
+    const snap = await getDocs(collection(db, 'users'));
+    const list: any[] = [];
+    snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+    list.sort((a, b) => (a.firstName || '').localeCompare(b.firstName || ''));
+    setUsers(list);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadUsers(); }, []);
+
+  const toggleStatus = async (userId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'blocked' ? 'active' : 'blocked';
+    await updateDoc(doc(db, 'users', userId), { status: newStatus });
+    loadUsers();
+  };
+
+  const deleteUser = async (userId: string) => {
+    if (confirm(`Удалить ${userId}? Это действие нельзя отменить.`)) {
+      await deleteDoc(doc(db, 'users', userId));
+      loadUsers();
+    }
+  };
+
+  const exportData = async () => {
+    const snap = await getDocs(collection(db, 'users'));
+    const data: any[] = [];
+    snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dukalis_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="fade-in" style={{ padding: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700 }}>Админ-панель</h2>
+        <button onClick={exportData} style={{ background: 'rgba(120,184,180,0.2)', border: 'none', color: 'var(--accent-teal)', padding: '8px 14px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
+          <Download size={16} /> Бэкап
+        </button>
+      </div>
+
+      {loading ? <p style={{ opacity: 0.5 }}>Загрузка...</p> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {users.map(u => (
+            <div key={u.id} className="glass" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontWeight: 700, fontSize: 15 }}>{u.firstName} {u.lastName}</p>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>@{u.tgNick || u.id}</p>
+                <p style={{ fontSize: 11, color: u.status === 'blocked' ? '#FF4B4B' : 'var(--accent-teal)', fontWeight: 700, textTransform: 'uppercase', marginTop: 4 }}>
+                  {u.status === 'blocked' ? '⛔ Заблокирован' : '✅ Активен'}
+                </p>
+              </div>
+              <button onClick={() => toggleStatus(u.id, u.status)} style={{ background: u.status === 'blocked' ? 'rgba(120,184,180,0.2)' : 'rgba(255,75,75,0.15)', border: 'none', borderRadius: 12, padding: '8px 10px', color: u.status === 'blocked' ? 'var(--accent-teal)' : '#FF4B4B' }}>
+                {u.status === 'blocked' ? <CheckCircle size={20} /> : <Ban size={20} />}
+              </button>
+              <button onClick={() => deleteUser(u.id)} style={{ background: 'rgba(255,75,75,0.1)', border: 'none', borderRadius: 12, padding: '8px 10px', color: '#FF4B4B' }}>
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -312,17 +399,21 @@ export default function App() {
     </div>
   );
 
+  const isAdmin = user.tgNick === SUPER_ADMIN;
+
   return (
     <div className="app-container" style={{ position:'relative', height:'100vh' }}>
       <div className="scroll-area" style={{ height:'100%', overflowY:'auto', paddingBottom: 120 }}>
         {activeTab === 'home' && <HomeTab user={user} onGoProfile={() => setActiveTab('profile')} setTab={setActiveTab} />}
         {activeTab === 'recipes' && <RecipesTab onBack={() => setActiveTab('home')} />}
         {activeTab === 'profile' && <ProfileTab user={user} onLogout={handleLogout} />}
+        {activeTab === 'admin' && isAdmin && <AdminTab />}
       </div>
       <div className="bottom-tab-bar" style={{ position:'absolute', bottom:0, width:'100%', padding: '20px' }}>
         <div className="glass tabs-container" style={{ display:'flex', justifyContent:'space-around', padding: 10, borderRadius: 100 }}>
           <button className={clsx('tab-item', activeTab === 'home' && 'active')} onClick={() => setActiveTab('home')} style={{ background:'none', border:'none', color:'#fff', opacity: activeTab === 'home' ? 1 : 0.5 }}><MapPin size={24} /><span>Главная</span></button>
           <button className={clsx('tab-item', activeTab === 'profile' && 'active')} onClick={() => setActiveTab('profile')} style={{ background:'none', border:'none', color:'#fff', opacity: activeTab === 'profile' ? 1 : 0.5 }}><User size={24} /><span>Профиль</span></button>
+          {isAdmin && <button className={clsx('tab-item', activeTab === 'admin' && 'active')} onClick={() => setActiveTab('admin')} style={{ background:'none', border:'none', color:'#fff', opacity: activeTab === 'admin' ? 1 : 0.5 }}><Shield size={20} /><span>Админ</span></button>}
         </div>
       </div>
     </div>
