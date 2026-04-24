@@ -189,7 +189,7 @@ body {
 .splash-fullscreen {
   position: fixed;
   inset: 0;
-  background-color: var(--bg-color);
+  background: linear-gradient(135deg, #4A2B3E 0%, #C75B7A 40%, #E8B4C0 75%, #8EC8C0 100%);
   z-index: 9999;
   display: flex;
   align-items: center;
@@ -205,7 +205,8 @@ body {
   position: absolute;
   width: var(--size);
   height: var(--size);
-  background: white;
+  background: linear-gradient(135deg, #FFD1DC 0%, #C75B7A 100%);
+  box-shadow: 0 0 12px rgba(199, 91, 122, 0.6);
   clip-path: polygon(50% 0%, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0% 50%, 39% 39%);
   animation: starBlink var(--duration) ease-in-out infinite alternate;
   animation-delay: var(--delay);
