@@ -8,12 +8,16 @@ import {
   ArrowRight, 
   LockKeyhole, 
   CalendarDays, 
-  ChevronLeft
+  ChevronLeft,
+  ShieldX
 } from 'lucide-react';
 import clsx from 'clsx';
 import { db } from './firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
+/* ============================
+   SPLASH SCREEN
+   ============================ */
 function SplashScreen() {
   const stars = Array.from({ length: 20 }).map((_, i) => ({
     id: i, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
@@ -27,6 +31,27 @@ function SplashScreen() {
   );
 }
 
+/* ============================
+   BLOCKED SCREEN
+   ============================ */
+function BlockedScreen({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="app-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', padding: 40 }}>
+      <div className="glass" style={{ padding: 40, textAlign: 'center', maxWidth: 340 }}>
+        <ShieldX size={48} style={{ color: 'var(--accent-pink)', marginBottom: 20 }} />
+        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12 }}>Доступ заблокирован</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+          Твой аккаунт был деактивирован администратором клуба. Если это ошибка — свяжись с администратором.
+        </p>
+        <button className="main-btn secondary-btn" onClick={onRetry}>Попробовать снова</button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================
+   HOME TAB
+   ============================ */
 function HomeTab({ user, onGoProfile, setTab }: { user: any, onGoProfile: () => void, setTab: (t: string) => void }) {
   const moscowTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
   const dayNum = moscowTime.getDate();
@@ -73,6 +98,9 @@ function HomeTab({ user, onGoProfile, setTab }: { user: any, onGoProfile: () => 
   );
 }
 
+/* ============================
+   RECIPES TAB
+   ============================ */
 function RecipesTab({ onBack }: { onBack: () => void }) {
   const [selectedRecipe, setSelectedRecipe] = useState<any | null>(null);
   const recipes = [
@@ -80,7 +108,7 @@ function RecipesTab({ onBack }: { onBack: () => void }) {
   ];
   if (selectedRecipe) return (
     <div className="recipe-detail-view fade-in">
-      <button onClick={() => setSelectedRecipe(null)} className="back-btn-round" style={{ background:'none', border:'none', color:'#fff', padding: 20 }}><ChevronLeft size={24} /></button>
+      <button onClick={() => setSelectedRecipe(null)} style={{ background:'none', border:'none', color:'#fff', padding: 20 }}><ChevronLeft size={24} /></button>
       <div style={{ padding: '20px' }}><h2>{selectedRecipe.name}</h2></div>
     </div>
   );
@@ -97,6 +125,9 @@ function RecipesTab({ onBack }: { onBack: () => void }) {
   );
 }
 
+/* ============================
+   PROFILE TAB
+   ============================ */
 function ProfileTab({ user, onLogout }: { user: any, onLogout: () => void }) {
   return (
     <div className="fade-in" style={{ padding: '20px' }}>
@@ -110,9 +141,13 @@ function ProfileTab({ user, onLogout }: { user: any, onLogout: () => void }) {
   );
 }
 
+/* ============================
+   MAIN APP
+   ============================ */
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const [user, setUser] = useState({ firstName: '', lastName: '', tgNick: '', email: '', password: '', birthDate: '', about: '' });
 
@@ -123,23 +158,140 @@ export default function App() {
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
+  /* --- ПРОВЕРКА СТАТУСА ПОЛЬЗОВАТЕЛЯ В FIRESTORE --- */
+  const checkUserStatus = async (userData: any): Promise<'active' | 'blocked' | 'not_found'> => {
+    try {
+      const userKey = userData.tgNick || userData.firstName;
+      const userDoc = await getDoc(doc(db, "users", userKey));
+      if (!userDoc.exists()) return 'not_found';
+      const data = userDoc.data();
+      return data.status === 'blocked' ? 'blocked' : 'active';
+    } catch {
+      return 'active'; // При ошибке сети — пускаем (оффлайн-режим)
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 2500);
-    const savedUser = sessionStorage.getItem('clubUser');
-    if (savedUser) { setUser(JSON.parse(savedUser)); setIsAuthenticated(true); }
+
+    // ✅ ИСПОЛЬЗУЕМ localStorage ВМЕСТО sessionStorage — данные сохраняются навсегда
+    const savedUser = localStorage.getItem('clubUser');
+    if (savedUser) {
+      const parsed = JSON.parse(savedUser);
+      setUser(parsed);
+      // Проверяем статус в Firestore перед тем как пустить
+      checkUserStatus(parsed).then(status => {
+        if (status === 'blocked') {
+          setIsBlocked(true);
+          setIsAuthenticated(false);
+        } else if (status === 'not_found') {
+          // Документ удалён — очищаем localStorage, показываем форму
+          localStorage.removeItem('clubUser');
+          setIsAuthenticated(false);
+        } else {
+          setIsAuthenticated(true);
+        }
+      });
+    }
+
+    // Telegram WebApp auto-fill
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      if (tg.initDataUnsafe?.user) {
+        const tgUser = tg.initDataUnsafe.user;
+        setUser(prev => ({
+          ...prev,
+          firstName: tgUser.first_name || prev.firstName,
+          lastName: tgUser.last_name || prev.lastName,
+          tgNick: tgUser.username || prev.tgNick,
+        }));
+
+        // Проверяем, есть ли пользователь в базе
+        const checkTgUser = async () => {
+          const userDoc = await getDoc(doc(db, "users", tgUser.username || tgUser.id.toString()));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            if (userData.status === 'blocked') {
+              setIsBlocked(true);
+            } else {
+              setUser(userData as any);
+              setIsAuthenticated(true);
+              localStorage.setItem('clubUser', JSON.stringify(userData));
+            }
+          }
+        };
+        checkTgUser();
+      }
+    }
+
     return () => clearTimeout(timer);
   }, []);
 
+  /* --- РЕГИСТРАЦИЯ --- */
   const handleLogin = async (e: any) => {
     e.preventDefault();
-    if (user.firstName && user.lastName) {
-      await setDoc(doc(db, "users", user.tgNick || user.firstName), user);
-      sessionStorage.setItem('clubUser', JSON.stringify(user));
+    if (user.firstName && user.lastName && user.tgNick && user.email && user.password && user.birthDate) {
+      const userKey = user.tgNick || user.firstName;
+
+      // Проверяем, нет ли блокировки
+      const existingDoc = await getDoc(doc(db, "users", userKey));
+      if (existingDoc.exists()) {
+        const existingData = existingDoc.data();
+        if (existingData.status === 'blocked') {
+          setIsBlocked(true);
+          return;
+        }
+        if (existingData.status === 'pending') {
+          alert('Твоя заявка на рассмотрении. Ожидай одобрения администратора.');
+          return;
+        }
+      }
+
+      // ✅ Записываем пользователя с полем status
+      const userData = {
+        ...user,
+        status: 'active',
+        registeredAt: new Date().toISOString(),
+      };
+      await setDoc(doc(db, "users", userKey), userData);
+
+      // ✅ Сохраняем в localStorage (навсегда)
+      localStorage.setItem('clubUser', JSON.stringify(userData));
       setIsAuthenticated(true);
     }
   };
 
+  /* --- ВЫХОД --- */
+  const handleLogout = () => {
+    localStorage.removeItem('clubUser');
+    setIsAuthenticated(false);
+    setUser({ firstName: '', lastName: '', tgNick: '', email: '', password: '', birthDate: '', about: '' });
+  };
+
+  /* --- ПОВТОРНАЯ ПРОВЕРКА (для blocked экрана) --- */
+  const handleRetry = async () => {
+    const savedUser = localStorage.getItem('clubUser');
+    if (savedUser) {
+      const parsed = JSON.parse(savedUser);
+      const status = await checkUserStatus(parsed);
+      if (status === 'active') {
+        setIsBlocked(false);
+        setIsAuthenticated(true);
+      } else if (status === 'not_found') {
+        localStorage.removeItem('clubUser');
+        setIsBlocked(false);
+        setIsAuthenticated(false);
+      }
+    } else {
+      setIsBlocked(false);
+    }
+  };
+
+  /* --- RENDER --- */
   if (showSplash) return <SplashScreen />;
+  if (isBlocked) return <BlockedScreen onRetry={handleRetry} />;
 
   if (!isAuthenticated) return (
     <div className="app-container">
@@ -147,12 +299,12 @@ export default function App() {
         <div className="glass auth-card" style={{ padding: 25 }}>
           <h1 style={{ fontSize: 24, textAlign:'center', marginBottom: 20 }}>Dukalis Club</h1>
           <form onSubmit={handleLogin} style={{ display:'flex', flexDirection:'column', gap: 15 }}>
-            <input ref={firstNameRef} type="text" className="input-field" placeholder="Имя" value={user.firstName} onChange={e => setUser({...user, firstName: e.target.value})} onKeyDown={e => e.key === 'Enter' && lastNameRef.current?.focus()} />
-            <input ref={lastNameRef} type="text" className="input-field" placeholder="Фамилия" value={user.lastName} onChange={e => setUser({...user, lastName: e.target.value})} onKeyDown={e => e.key === 'Enter' && birthDateRef.current?.focus()} />
-            <div style={{ position:'relative' }}><CalendarDays size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={birthDateRef} type="text" className="input-field" placeholder="ДД.ММ.ГГГГ" style={{ paddingLeft: 44 }} value={user.birthDate} onChange={e => setUser({...user, birthDate: e.target.value})} onKeyDown={e => e.key === 'Enter' && tgNickRef.current?.focus()} /></div>
-            <div style={{ position:'relative' }}><AtSign size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={tgNickRef} type="text" className="input-field" placeholder="Telegram" style={{ paddingLeft: 44 }} value={user.tgNick} onChange={e => setUser({...user, tgNick: e.target.value})} onKeyDown={e => e.key === 'Enter' && emailRef.current?.focus()} /></div>
-            <div style={{ position:'relative' }}><Mail size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={emailRef} type="email" className="input-field" placeholder="Email" style={{ paddingLeft: 44 }} value={user.email} onChange={e => setUser({...user, email: e.target.value})} onKeyDown={e => e.key === 'Enter' && passwordRef.current?.focus()} /></div>
-            <div style={{ position:'relative' }}><LockKeyhole size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={passwordRef} type="password" className="input-field" placeholder="Пароль" style={{ paddingLeft: 44 }} value={user.password} onChange={e => setUser({...user, password: e.target.value})} /></div>
+            <input ref={firstNameRef} type="text" className="input-field" placeholder="Имя" value={user.firstName} onChange={e => setUser({...user, firstName: e.target.value})} onKeyDown={e => e.key === 'Enter' && lastNameRef.current?.focus()} required />
+            <input ref={lastNameRef} type="text" className="input-field" placeholder="Фамилия" value={user.lastName} onChange={e => setUser({...user, lastName: e.target.value})} onKeyDown={e => e.key === 'Enter' && birthDateRef.current?.focus()} required />
+            <div style={{ position:'relative' }}><CalendarDays size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={birthDateRef} type="text" className="input-field" placeholder="ДД.ММ.ГГГГ" style={{ paddingLeft: 44 }} value={user.birthDate} onChange={e => setUser({...user, birthDate: e.target.value})} onKeyDown={e => e.key === 'Enter' && tgNickRef.current?.focus()} required /></div>
+            <div style={{ position:'relative' }}><AtSign size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={tgNickRef} type="text" className="input-field" placeholder="Telegram" style={{ paddingLeft: 44 }} value={user.tgNick} onChange={e => setUser({...user, tgNick: e.target.value})} onKeyDown={e => e.key === 'Enter' && emailRef.current?.focus()} required /></div>
+            <div style={{ position:'relative' }}><Mail size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={emailRef} type="email" className="input-field" placeholder="Email" style={{ paddingLeft: 44 }} value={user.email} onChange={e => setUser({...user, email: e.target.value})} onKeyDown={e => e.key === 'Enter' && passwordRef.current?.focus()} required /></div>
+            <div style={{ position:'relative' }}><LockKeyhole size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={passwordRef} type="password" className="input-field" placeholder="Пароль" style={{ paddingLeft: 44 }} value={user.password} onChange={e => setUser({...user, password: e.target.value})} required /></div>
             <button type="submit" className="main-btn">Войти <ArrowRight size={18} /></button>
           </form>
         </div>
@@ -165,7 +317,7 @@ export default function App() {
       <div className="scroll-area" style={{ height:'100%', overflowY:'auto', paddingBottom: 120 }}>
         {activeTab === 'home' && <HomeTab user={user} onGoProfile={() => setActiveTab('profile')} setTab={setActiveTab} />}
         {activeTab === 'recipes' && <RecipesTab onBack={() => setActiveTab('home')} />}
-        {activeTab === 'profile' && <ProfileTab user={user} onLogout={() => { sessionStorage.removeItem('clubUser'); setIsAuthenticated(false); }} />}
+        {activeTab === 'profile' && <ProfileTab user={user} onLogout={handleLogout} />}
       </div>
       <div className="bottom-tab-bar" style={{ position:'absolute', bottom:0, width:'100%', padding: '20px' }}>
         <div className="glass tabs-container" style={{ display:'flex', justifyContent:'space-around', padding: 10, borderRadius: 100 }}>
