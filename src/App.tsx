@@ -316,35 +316,54 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  /* --- РЕГИСТРАЦИЯ --- */
+  /* --- РЕГИСТРАЦИЯ / ВХОД --- */
+  const [loginError, setLoginError] = useState('');
+
   const handleLogin = async (e: any) => {
     e.preventDefault();
+    setLoginError('');
+
     if (user.firstName && user.lastName && user.tgNick && user.email && user.password && user.birthDate) {
       const userKey = user.tgNick || user.firstName;
 
-      // Проверяем, нет ли блокировки
+      // Проверяем, существует ли пользователь с таким ником
       const existingDoc = await getDoc(doc(db, "users", userKey));
+      
       if (existingDoc.exists()) {
         const existingData = existingDoc.data();
+
+        // Заблокирован?
         if (existingData.status === 'blocked') {
           setIsBlocked(true);
           return;
         }
+
+        // Ожидает одобрения?
         if (existingData.status === 'pending') {
-          alert('Твоя заявка на рассмотрении. Ожидай одобрения администратора.');
+          setLoginError('Твоя заявка на рассмотрении. Ожидай одобрения администратора.');
           return;
         }
+
+        // ✅ ПРОВЕРКА ПАРОЛЯ: если пользователь уже зарегистрирован — требуем правильный пароль
+        if (existingData.password !== user.password) {
+          setLoginError('Неверный пароль. Этот ник уже зарегистрирован.');
+          return;
+        }
+
+        // Пароль совпал — входим под существующим аккаунтом
+        localStorage.setItem('clubUser', JSON.stringify(existingData));
+        setUser(existingData as any);
+        setIsAuthenticated(true);
+        return;
       }
 
-      // ✅ Записываем пользователя с полем status
+      // Новый пользователь — регистрация
       const userData = {
         ...user,
         status: 'active',
         registeredAt: new Date().toISOString(),
       };
       await setDoc(doc(db, "users", userKey), userData);
-
-      // ✅ Сохраняем в localStorage (навсегда)
       localStorage.setItem('clubUser', JSON.stringify(userData));
       setIsAuthenticated(true);
     }
@@ -392,6 +411,7 @@ export default function App() {
             <div style={{ position:'relative' }}><AtSign size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={tgNickRef} type="text" className="input-field" placeholder="Telegram" style={{ paddingLeft: 44 }} value={user.tgNick} onChange={e => setUser({...user, tgNick: e.target.value})} onKeyDown={e => e.key === 'Enter' && emailRef.current?.focus()} required /></div>
             <div style={{ position:'relative' }}><Mail size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={emailRef} type="email" className="input-field" placeholder="Email" style={{ paddingLeft: 44 }} value={user.email} onChange={e => setUser({...user, email: e.target.value})} onKeyDown={e => e.key === 'Enter' && passwordRef.current?.focus()} required /></div>
             <div style={{ position:'relative' }}><LockKeyhole size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={passwordRef} type="password" className="input-field" placeholder="Пароль" style={{ paddingLeft: 44 }} value={user.password} onChange={e => setUser({...user, password: e.target.value})} required /></div>
+            {loginError && <p style={{ color: '#FF4B4B', fontSize: 13, textAlign: 'center' }}>{loginError}</p>}
             <button type="submit" className="main-btn">Войти <ArrowRight size={18} /></button>
           </form>
         </div>
