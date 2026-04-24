@@ -1,371 +1,178 @@
-import React, { useState, useEffect } from 'react';
-import { User, Sparkles, MapPin, Search, Calendar, ChevronRight, Mail, AtSign, ArrowRight, LockKeyhole, CalendarDays } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { 
+  User, 
+  MapPin, 
+  ChevronRight, 
+  Mail, 
+  AtSign, 
+  ArrowRight, 
+  LockKeyhole, 
+  CalendarDays, 
+  ChevronLeft
+} from 'lucide-react';
 import clsx from 'clsx';
+import { db } from './firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 function SplashScreen() {
+  const stars = Array.from({ length: 20 }).map((_, i) => ({
+    id: i, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
+    duration: `${2.5 + Math.random() * 3.5}s`, delay: `${Math.random() * 3}s`, size: `${4 + Math.random() * 8}px`
+  }));
   return (
     <div className="splash-fullscreen">
-      <div className="splash-logo-box">
-        <img src="/logo.jpeg" alt="Dukalis Club Logo" />
-      </div>
+      <div className="stars-container">{stars.map(star => (<div key={star.id} className="star" style={{ top: star.top, left: star.left, '--duration': star.duration, '--delay': star.delay, '--size': star.size } as any} />))}</div>
+      <div className="splash-logo-box"><img src="/logo_final.jpg" alt="Logo" /></div>
     </div>
   );
 }
 
-function App() {
-  const [showSplash, setShowSplash] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState('home');
+function HomeTab({ user, onGoProfile, setTab }: { user: any, onGoProfile: () => void, setTab: (t: string) => void }) {
+  const moscowTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+  const dayNum = moscowTime.getDate();
+  const monthName = moscowTime.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', '');
+  const CALENDAR_ID = "1411216cba515736814d4f56a1e419347f970d9e94d1dc041c9cc0986d1dd94e@group.calendar.google.com";
   
-  const [user, setUser] = useState({ 
-    firstName: '', 
-    lastName: '', 
-    tgNick: '', 
-    email: '', 
-    password: '',
-    birthDate: '',
-    about: 'Привет! Я обожаю саморазвитие, маркетинг и психологию. Рада быть частью этого комьюнити!'
-  });
-
-  useEffect(() => {
-    // Включаем таймер для сплэш-экрана
-    const timer = setTimeout(() => setShowSplash(false), 2500);
-    
-    // Telegram Web App init
-    const tg = (window as any).Telegram?.WebApp;
-    if (tg) {
-      tg.ready();
-      tg.expand();
-      if (tg.initDataUnsafe?.user) {
-        setUser(prev => ({
-          ...prev,
-          firstName: tg.initDataUnsafe.user.first_name || prev.firstName,
-          lastName: tg.initDataUnsafe.user.last_name || prev.lastName,
-          tgNick: tg.initDataUnsafe.user.username || prev.tgNick,
-        }));
-      }
-    }
-
-    // Используем sessionStorage, чтобы при перезагрузке можно было заново тестировать форму входа
-    const savedUser = sessionStorage.getItem('clubUser');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-      setIsAuthenticated(true);
-    }
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (user.firstName && user.lastName && user.tgNick && user.email && user.password && user.birthDate) {
-      sessionStorage.setItem('clubUser', JSON.stringify(user));
-      setIsAuthenticated(true);
-    }
-  };
-
-  const handleLogout = () => {
-    sessionStorage.removeItem('clubUser');
-    setIsAuthenticated(false);
-    setUser({ ...user, firstName: '', lastName: '', password: '' });
-  };
-
-  if (showSplash) {
-    return <SplashScreen />;
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="app-container">
-        <div className="auth-wrapper fade-in">
-          <div className="header-centered">
-            <h1 className="header-title">Dukalis Club</h1>
-            <p className="header-subtitle">Для приватности клуба регистрация выполняется только один раз.</p>
-          </div>
-
-          <div className="glass auth-card">
-            <div className="main-logo-wrap">
-              <img src="/logo.jpeg" alt="Main Logo" />
-            </div>
-            <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '8px' }}>Вход в клуб</h2>
-            
-            <form onSubmit={handleLogin} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <div className="input-group" style={{ flex: 1 }}>
-                  <span className="input-label">Имя</span>
-                  <input 
-                    type="text" 
-                    className="input-field" 
-                    placeholder="Анна"
-                    value={user.firstName}
-                    onChange={(e) => setUser({...user, firstName: e.target.value})}
-                    required 
-                  />
-                </div>
-                <div className="input-group" style={{ flex: 1 }}>
-                  <span className="input-label">Фамилия</span>
-                  <input 
-                    type="text" 
-                    className="input-field" 
-                    placeholder="Иванова"
-                    value={user.lastName}
-                    onChange={(e) => setUser({...user, lastName: e.target.value})}
-                    required 
-                  />
-                </div>
-              </div>
-
-              <div className="input-group">
-                <span className="input-label">Дата рождения</span>
-                <div style={{ position: 'relative' }}>
-                  <CalendarDays size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#8E8E93', pointerEvents: 'none' }} />
-                  <input 
-                    type="date" 
-                    className="input-field" 
-                    style={{ paddingLeft: '44px' }}
-                    value={user.birthDate}
-                    onChange={(e) => setUser({...user, birthDate: e.target.value})}
-                    required 
-                  />
-                </div>
-              </div>
-
-              <div className="input-group">
-                <span className="input-label">Ник в Telegram</span>
-                <div style={{ position: 'relative' }}>
-                  <AtSign size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#8E8E93', pointerEvents: 'none' }} />
-                  <input 
-                    type="text" 
-                    className="input-field" 
-                    placeholder="anya_ivanova"
-                    style={{ paddingLeft: '44px' }}
-                    value={user.tgNick}
-                    onChange={(e) => setUser({...user, tgNick: e.target.value})}
-                    required 
-                  />
-                </div>
-              </div>
-
-              <div className="input-group">
-                <span className="input-label">Почта</span>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#8E8E93', pointerEvents: 'none' }} />
-                  <input 
-                    type="email" 
-                    className="input-field" 
-                    placeholder="email@example.com"
-                    style={{ paddingLeft: '44px' }}
-                    value={user.email}
-                    onChange={(e) => setUser({...user, email: e.target.value})}
-                    required 
-                  />
-                </div>
-              </div>
-
-              <div className="input-group">
-                <span className="input-label">Придумайте пароль</span>
-                <div style={{ position: 'relative' }}>
-                  <LockKeyhole size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#8E8E93', pointerEvents: 'none' }} />
-                  <input 
-                    type="password" 
-                    className="input-field" 
-                    placeholder="••••••••"
-                    style={{ paddingLeft: '44px' }}
-                    value={user.password}
-                    onChange={(e) => setUser({...user, password: e.target.value})}
-                    required 
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginTop: '8px' }}>
-                <button type="submit" className="main-btn">
-                  Войти
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="app-container">
-      <div className="scroll-area">
-        {activeTab === 'home' && <HomeTab firstName={user.firstName} onGoProfile={() => setActiveTab('profile')} />}
-        {activeTab === 'profile' && <ProfileTab user={user} onLogout={handleLogout} />}
+    <div className="home-screen fade-in">
+      <div className="home-header" onClick={onGoProfile}>
+        <div className="greeting-text">
+          <p className="greeting-sub">Рады тебя видеть,</p>
+          <h2 className="greeting-name">{user.firstName || 'Гостья'}! 👋</h2>
+        </div>
+        <div className="user-avatar-small"><img src={user.photoURL || "/logo_final.jpg"} alt="User" /></div>
       </div>
-
-      {/* Bottom Tabs */}
-      <div className="bottom-tab-bar">
-        <div className="glass tabs-container">
-          <button 
-            className={clsx('tab-item', activeTab === 'home' && 'active')}
-            onClick={() => setActiveTab('home')}
-          >
-            <MapPin size={24} strokeWidth={activeTab === 'home' ? 2.5 : 2} />
-            <span>Главная</span>
-          </button>
-          
-          <button 
-            className={clsx('tab-item', activeTab === 'search' && 'active')}
-            onClick={() => setActiveTab('search')}
-          >
-            <Search size={24} strokeWidth={activeTab === 'search' ? 2.5 : 2} />
-            <span>Ветки</span>
-          </button>
-
-          <button 
-            className={clsx('tab-item', activeTab === 'profile' && 'active')}
-            onClick={() => setActiveTab('profile')}
-          >
-            <User size={24} strokeWidth={activeTab === 'profile' ? 2.5 : 2} />
-            <span>Профиль</span>
-          </button>
+      <div className="glass theme-card" style={{ padding: '12px 16px', marginBottom: '10px' }}>
+        <div className="theme-tag" style={{ fontSize: '9px', marginBottom: '2px' }}>Тема месяца</div>
+        <h3 className="theme-title" style={{ fontSize: '18px' }}>Эмоциональный Интеллект</h3>
+        <p style={{ fontSize: '13px', opacity: 0.6 }}>Управление чувствами</p>
+      </div>
+      <div className="calendar-grid">
+        <div className="glass date-tile"><span className="day-num">{dayNum}</span><span className="month-name">{monthName}</span></div>
+        <a href={`https://calendar.google.com/calendar/u/0/r?src=${CALENDAR_ID}`} target="_blank" rel="noopener noreferrer" className="glass calendar-full-btn"><span>Календарь клуба</span><ChevronRight size={18} /></a>
+      </div>
+      <div className="doc-bar">
+        <a href="https://docs.google.com/spreadsheets/d/1uesCou32MDZhkhi8Q5myvROC2KBWiMbyn8ou1lH3Izo/edit" target="_blank" rel="noopener noreferrer" className="doc-item">
+          <div className="doc-icon-sq"><img src="/icon_doctors.png" alt="Doctors" /></div>
+          <span className="doc-label">Врачи</span>
+        </a>
+        <div className="doc-item" onClick={() => window.open("https://open.spotify.com/playlist/2GOjsccJOAZxViZQhOhilF", "_blank")}>
+          <div className="doc-icon-sq"><img src="/icon_spotify.png" alt="Spotify" /></div>
+          <span className="doc-label">Spotify</span>
+        </div>
+        <div className="doc-item" onClick={() => window.open("https://music.yandex.ru/users/lisasofd/playlists/1002", "_blank")}>
+          <div className="doc-icon-sq"><img src="/icon_yandex.png" alt="Yandex" /></div>
+          <span className="doc-label">Я.Музыка</span>
+        </div>
+        <div className="doc-item" onClick={() => setTab('recipes')}>
+          <div className="doc-icon-sq"><img src="/icon_recipes.png" alt="Recipes" /></div>
+          <span className="doc-label">Рецепты</span>
         </div>
       </div>
     </div>
   );
 }
 
-function HomeTab({ firstName, onGoProfile }: { firstName: string, onGoProfile: () => void }) {
-  // Текущая дата
-  const today = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-
+function RecipesTab({ onBack }: { onBack: () => void }) {
+  const [selectedRecipe, setSelectedRecipe] = useState<any | null>(null);
+  const recipes = [
+    { id: 1, name: "Зеленая овсянка с авокадо", category: "Завтраки", time: "20 мин", image: "https://images.unsplash.com/photo-1525351484163-7529414344d8?q=80&w=600&auto=format&fit=crop" },
+  ];
+  if (selectedRecipe) return (
+    <div className="recipe-detail-view fade-in">
+      <button onClick={() => setSelectedRecipe(null)} className="back-btn-round" style={{ background:'none', border:'none', color:'#fff', padding: 20 }}><ChevronLeft size={24} /></button>
+      <div style={{ padding: '20px' }}><h2>{selectedRecipe.name}</h2></div>
+    </div>
+  );
   return (
-    <div className="fade-in">
-      <div className="glass" style={{ padding: '24px 20px', textAlign: 'left', marginBottom: '28px', cursor: 'pointer' }} onClick={onGoProfile}>
-        <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '6px' }}>
-          Привет, {firstName}! 🖐
-        </h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-          Нажми сюда, чтобы перейти в профиль и заполнить информацию.
-        </p>
-      </div>
-
-      <h3 className="section-title">Тема месяца</h3>
-      <div className="glass" style={{ padding: '20px', marginBottom: '28px', borderRadius: '24px', background: 'linear-gradient(135deg, rgba(212, 102, 130, 0.2) 0%, rgba(120, 184, 180, 0.2) 100%)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-          <Sparkles color="var(--accent-pink)" size={28} />
-          <h4 style={{ fontSize: '20px', fontWeight: '700' }}>Эмоциональный Интеллект</h4>
+    <div className="recipes-screen fade-in" style={{ padding: '20px' }}>
+      <button onClick={onBack} style={{ background:'none', border:'none', color:'#fff', display:'flex', alignItems:'center', gap: 5, marginBottom: 20 }}><ChevronLeft size={20} /> Назад</button>
+      {recipes.map(r => (
+        <div key={r.id} className="glass recipe-card" onClick={() => setSelectedRecipe(r)} style={{ marginBottom: 15 }}>
+          <img src={r.image} alt={r.name} style={{ width:'100%', height: 140, objectFit:'cover', borderRadius: '20px 20px 0 0' }} />
+          <div style={{ padding: 15 }}><h3>{r.name}</h3></div>
         </div>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5' }}>
-          В этом месяце мы погружаемся в искусство управления своими эмоциями, разбираем выгорание и учимся находить ресурс в себе.
-        </p>
-      </div>
-
-      <h3 className="section-title">Календарь клуба</h3>
-      <div className="nav-grid">
-        <div className="glass nav-grid-item" style={{ background: 'rgba(212, 102, 130, 0.1)' }}>
-          <div className="nav-icon" style={{ background: 'rgba(212, 102, 130, 0.2)', color: 'var(--accent-pink)' }}><CalendarDays size={24} /></div>
-          <div style={{ fontWeight: '600', fontSize: '15px' }}>Общий календарь</div>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Все события месяца</p>
-        </div>
-        <div className="glass nav-grid-item" style={{ background: 'rgba(120, 184, 180, 0.1)' }}>
-          <div className="nav-icon" style={{ background: 'rgba(120, 184, 180, 0.2)', color: 'var(--accent-teal)' }}><MapPin size={24} /></div>
-          <div style={{ fontWeight: '600', fontSize: '15px' }}>Встречи Оффлайн</div>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Записи на оффлайн</p>
-        </div>
-      </div>
-
-      <h3 className="section-title">События сегодня ({today})</h3>
-      <div className="activity-list">
-        <div className="glass activity-card">
-          <div className="activity-avatar" style={{ color: 'var(--accent-teal)' }}>🎙️</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: '600', fontSize: '14px' }}>Эфир: Психология эмоций</div>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-               <Calendar size={12} /> Сегодня в 19:00
-            </div>
-          </div>
-          <ChevronRight size={18} color="#A8A8B3" />
-        </div>
-        
-        <div className="glass activity-card">
-          <div className="activity-avatar" style={{ color: 'var(--accent-pink)' }}>📖</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: '600', fontSize: '14px' }}>Обсуждение книжного клуба</div>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-               <Calendar size={12} /> Сегодня в 20:30
-            </div>
-          </div>
-          <ChevronRight size={18} color="#A8A8B3" />
-        </div>
-      </div>
+      ))}
     </div>
   );
 }
 
 function ProfileTab({ user, onLogout }: { user: any, onLogout: () => void }) {
-  
-  // Проверка на День Рождения.
-  const checkBirthday = () => {
-    if (!user.birthDate) return false;
-    const today = new Date();
-    const bd = new Date(user.birthDate);
-    return today.getMonth() === bd.getMonth() && today.getDate() === bd.getDate();
-  };
-  
-  const isBirthday = checkBirthday();
-
   return (
-    <div className="fade-in">
+    <div className="fade-in" style={{ padding: '20px' }}>
       <div className="glass" style={{ width: '100%', padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <div className="logo-image-wrap" style={{ borderRadius: '40px', width: '80px', height: '80px' }}>
-           <img src="/logo.jpeg" alt="Avatar" />
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-            {user.firstName} {user.lastName}
-            {isBirthday && <span style={{ fontSize: '22px' }}>🎂</span>}
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>@{user.tgNick}</p>
-        </div>
-        
-        <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '4px' }}>
-          <div style={{ flex: 1, textAlign: 'center', background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div style={{ fontSize: '18px', fontWeight: '700' }}>12</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Штампов</div>
-          </div>
-          <div style={{ flex: 1, textAlign: 'center', background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div style={{ fontSize: '18px', fontWeight: '700' }}>4</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Ачивки</div>
-          </div>
-        </div>
+        <div className="logo-image-wrap" style={{ borderRadius: '40px', width: '80px', height: '80px' }}><img src="/logo_final.jpg" alt="Avatar" /></div>
+        <h2 style={{ fontSize: '20px', fontWeight: '700' }}>{user.firstName} {user.lastName}</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>@{user.tgNick}</p>
       </div>
-
-      <div className="glass" style={{ padding: '20px', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Почта</span>
-          <span style={{ fontWeight: '500', fontSize: '14px' }}>{user.email}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Дата рождения</span>
-          <span style={{ fontWeight: '500', fontSize: '14px' }}>{new Date(user.birthDate).toLocaleDateString('ru-RU')}</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>О себе</span>
-          <p style={{ fontSize: '14px', lineHeight: '1.4', background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '12px' }}>
-            {user.about}
-          </p>
-        </div>
-      </div>
-
-      <h3 className="section-title">Мои интересы</h3>
-      <div className="pill-group" style={{ marginBottom: '24px' }}>
-        <div className="pill">Книжный клуб</div>
-        <div className="pill">Оффлайн</div>
-        <div className="pill">Саморазвитие</div>
-        <div className="pill">Эфиры</div>
-      </div>
-
-      <button className="main-btn secondary-btn" style={{ marginBottom: '40px' }} onClick={onLogout}>
-        Выйти из аккаунта
-      </button>
+      <button className="main-btn secondary-btn" onClick={onLogout}>Выйти из аккаунта</button>
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeTab, setActiveTab] = useState('home');
+  const [user, setUser] = useState({ firstName: '', lastName: '', tgNick: '', email: '', password: '', birthDate: '', about: '' });
+
+  const firstNameRef = useRef<HTMLInputElement>(null);
+  const lastNameRef = useRef<HTMLInputElement>(null);
+  const birthDateRef = useRef<HTMLInputElement>(null);
+  const tgNickRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 2500);
+    const savedUser = sessionStorage.getItem('clubUser');
+    if (savedUser) { setUser(JSON.parse(savedUser)); setIsAuthenticated(true); }
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleLogin = async (e: any) => {
+    e.preventDefault();
+    if (user.firstName && user.lastName) {
+      await setDoc(doc(db, "users", user.tgNick || user.firstName), user);
+      sessionStorage.setItem('clubUser', JSON.stringify(user));
+      setIsAuthenticated(true);
+    }
+  };
+
+  if (showSplash) return <SplashScreen />;
+
+  if (!isAuthenticated) return (
+    <div className="app-container">
+      <div className="auth-wrapper fade-in" style={{ padding: '100px 20px' }}>
+        <div className="glass auth-card" style={{ padding: 25 }}>
+          <h1 style={{ fontSize: 24, textAlign:'center', marginBottom: 20 }}>Dukalis Club</h1>
+          <form onSubmit={handleLogin} style={{ display:'flex', flexDirection:'column', gap: 15 }}>
+            <input ref={firstNameRef} type="text" className="input-field" placeholder="Имя" value={user.firstName} onChange={e => setUser({...user, firstName: e.target.value})} onKeyDown={e => e.key === 'Enter' && lastNameRef.current?.focus()} />
+            <input ref={lastNameRef} type="text" className="input-field" placeholder="Фамилия" value={user.lastName} onChange={e => setUser({...user, lastName: e.target.value})} onKeyDown={e => e.key === 'Enter' && birthDateRef.current?.focus()} />
+            <div style={{ position:'relative' }}><CalendarDays size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={birthDateRef} type="text" className="input-field" placeholder="ДД.ММ.ГГГГ" style={{ paddingLeft: 44 }} value={user.birthDate} onChange={e => setUser({...user, birthDate: e.target.value})} onKeyDown={e => e.key === 'Enter' && tgNickRef.current?.focus()} /></div>
+            <div style={{ position:'relative' }}><AtSign size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={tgNickRef} type="text" className="input-field" placeholder="Telegram" style={{ paddingLeft: 44 }} value={user.tgNick} onChange={e => setUser({...user, tgNick: e.target.value})} onKeyDown={e => e.key === 'Enter' && emailRef.current?.focus()} /></div>
+            <div style={{ position:'relative' }}><Mail size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={emailRef} type="email" className="input-field" placeholder="Email" style={{ paddingLeft: 44 }} value={user.email} onChange={e => setUser({...user, email: e.target.value})} onKeyDown={e => e.key === 'Enter' && passwordRef.current?.focus()} /></div>
+            <div style={{ position:'relative' }}><LockKeyhole size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={passwordRef} type="password" className="input-field" placeholder="Пароль" style={{ paddingLeft: 44 }} value={user.password} onChange={e => setUser({...user, password: e.target.value})} /></div>
+            <button type="submit" className="main-btn">Войти <ArrowRight size={18} /></button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="app-container" style={{ position:'relative', height:'100vh' }}>
+      <div className="scroll-area" style={{ height:'100%', overflowY:'auto', paddingBottom: 120 }}>
+        {activeTab === 'home' && <HomeTab user={user} onGoProfile={() => setActiveTab('profile')} setTab={setActiveTab} />}
+        {activeTab === 'recipes' && <RecipesTab onBack={() => setActiveTab('home')} />}
+        {activeTab === 'profile' && <ProfileTab user={user} onLogout={() => { sessionStorage.removeItem('clubUser'); setIsAuthenticated(false); }} />}
+      </div>
+      <div className="bottom-tab-bar" style={{ position:'absolute', bottom:0, width:'100%', padding: '20px' }}>
+        <div className="glass tabs-container" style={{ display:'flex', justifyContent:'space-around', padding: 10, borderRadius: 100 }}>
+          <button className={clsx('tab-item', activeTab === 'home' && 'active')} onClick={() => setActiveTab('home')} style={{ background:'none', border:'none', color:'#fff', opacity: activeTab === 'home' ? 1 : 0.5 }}><MapPin size={24} /><span>Главная</span></button>
+          <button className={clsx('tab-item', activeTab === 'profile' && 'active')} onClick={() => setActiveTab('profile')} style={{ background:'none', border:'none', color:'#fff', opacity: activeTab === 'profile' ? 1 : 0.5 }}><User size={24} /><span>Профиль</span></button>
+        </div>
+      </div>
+    </div>
+  );
+}
