@@ -189,7 +189,11 @@ body {
 .splash-fullscreen {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, #4A2B3E 0%, #C75B7A 40%, #E8B4C0 75%, #8EC8C0 100%);
+  background-color: var(--bg-color);
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(199, 91, 122, 0.25), transparent 50%),
+    radial-gradient(circle at 90% 80%, rgba(142, 200, 192, 0.25), transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(232, 180, 192, 0.15), transparent 55%);
   z-index: 9999;
   display: flex;
   align-items: center;
