@@ -63,42 +63,70 @@ function HomeTab({ user, onGoProfile, setTab }: { user: any, onGoProfile: () => 
   const moscowTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
   const dayNum = moscowTime.getDate();
   const monthName = moscowTime.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', '');
+  const monthIndex = moscowTime.getMonth(); // 0 - 11
   const CALENDAR_ID = "1411216cba515736814d4f56a1e419347f970d9e94d1dc041c9cc0986d1dd94e@group.calendar.google.com";
   
+  const themes = [
+    { title: "Зимняя перезагрузка" }, // 0
+    { title: "Любовь к себе" }, // 1
+    { title: "Весеннее пробуждение" }, // 2
+    { title: "Тело и здоровье" }, // 3 (Апрель)
+    { title: "Блогинг и рилсы" }, // 4 (Май)
+    { title: "Развитие бренда и креативность" }, // 5 (Июнь)
+    { title: "Финансовая грамотность и инвестиции" }, // 6 (Июль)
+    { title: "Сексуальное здоровье" }, // 7 (Август)
+    { title: "Косметология и биохакинг" }, // 8 (Сентябрь)
+    { title: "Родительство" }, // 9 (Октябрь)
+    { title: "Речь и публичные выступления" }, // 10 (Ноябрь)
+    { title: "Итоги года" }, // 11 (Декабрь)
+  ];
+  const currentTheme = themes[monthIndex] || themes[0];
+
   return (
     <div className="home-screen fade-in">
-      <div className="home-header" onClick={onGoProfile}>
+      <div className="home-header" onClick={onGoProfile} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div className="greeting-text">
-          <p className="greeting-sub">Рады тебя видеть,</p>
-          <h2 className="greeting-name">{user.firstName || 'Гостья'}! 👋</h2>
+          <p className="greeting-sub" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Рады тебя видеть,</p>
+          <h2 className="greeting-name" style={{ fontSize: '24px', fontWeight: 700 }}>{user.firstName || 'Гостья'}! 👋</h2>
         </div>
-        <div className="user-avatar-small"><img src={user.photoURL || "/logo_final.jpg"} alt="User" /></div>
+        <div className="user-avatar-small" style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden' }}>
+          <img src={user.photoURL || "/logo_final.jpg"} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
       </div>
-      <div className="glass theme-card" style={{ padding: '12px 16px', marginBottom: '10px' }}>
-        <div className="theme-tag" style={{ fontSize: '9px', marginBottom: '2px' }}>Тема месяца</div>
-        <h3 className="theme-title" style={{ fontSize: '18px' }}>Эмоциональный Интеллект</h3>
-        <p style={{ fontSize: '13px', opacity: 0.6 }}>Управление чувствами</p>
+
+      {/* Окно с темой месяца */}
+      <div className="glass theme-card" style={{ padding: '24px 20px', marginBottom: '20px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="theme-tag" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.8, fontWeight: 600, color: 'var(--accent-teal)' }}>Тема месяца</div>
+        <h3 className="theme-title" style={{ fontSize: '22px', fontWeight: 700, lineHeight: 1.3 }}>{currentTheme.title}</h3>
       </div>
-      <div className="calendar-grid">
-        <div className="glass date-tile"><span className="day-num">{dayNum}</span><span className="month-name">{monthName}</span></div>
-        <a href={`https://calendar.google.com/calendar/u/0/r?src=${CALENDAR_ID}`} target="_blank" rel="noopener noreferrer" className="glass calendar-full-btn"><span>Календарь клуба</span><ChevronRight size={18} /></a>
-      </div>
-      <div className="doc-bar">
-        <a href="https://docs.google.com/spreadsheets/d/1uesCou32MDZhkhi8Q5myvROC2KBWiMbyn8ou1lH3Izo/edit" target="_blank" rel="noopener noreferrer" className="doc-item">
-          <div className="doc-icon-sq"><img src="/icon_doctors.png" alt="Doctors" /></div>
-          <span className="doc-label">Врачи</span>
+
+      <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '12px', marginBottom: '20px' }}>
+        <div className="glass date-tile" style={{ padding: '16px', borderRadius: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <span className="day-num" style={{ fontSize: '28px', fontWeight: 700, lineHeight: 1 }}>{dayNum}</span>
+          <span className="month-name" style={{ fontSize: '13px', textTransform: 'uppercase', opacity: 0.7, marginTop: '4px' }}>{monthName}</span>
+        </div>
+        <a href={`https://calendar.google.com/calendar/u/0/r?src=${CALENDAR_ID}`} target="_blank" rel="noopener noreferrer" className="glass calendar-full-btn" style={{ padding: '0 20px', borderRadius: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
+          <span style={{ fontSize: '16px', fontWeight: 600 }}>Календарь клуба</span>
+          <ChevronRight size={20} style={{ opacity: 0.5 }} />
         </a>
-        <div className="doc-item" onClick={() => window.open("https://open.spotify.com/playlist/2GOjsccJOAZxViZQhOhilF", "_blank")}>
-          <div className="doc-icon-sq"><img src="/icon_spotify.png" alt="Spotify" /></div>
-          <span className="doc-label">Spotify</span>
+      </div>
+
+      <div className="doc-bar" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+        <a href="https://docs.google.com/spreadsheets/d/1uesCou32MDZhkhi8Q5myvROC2KBWiMbyn8ou1lH3Izo/edit" target="_blank" rel="noopener noreferrer" className="doc-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit' }}>
+          <div className="doc-icon-sq" style={{ width: '60px', height: '60px', borderRadius: '18px', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><img src="/icon_doctors.png" alt="Doctors" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>
+          <span className="doc-label" style={{ fontSize: '12px', textAlign: 'center', fontWeight: 500 }}>Врачи</span>
+        </a>
+        <div className="doc-item" onClick={() => window.open("https://open.spotify.com/playlist/2GOjsccJOAZxViZQhOhilF", "_blank")} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <div className="doc-icon-sq" style={{ width: '60px', height: '60px', borderRadius: '18px', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><img src="/icon_spotify.png" alt="Spotify" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>
+          <span className="doc-label" style={{ fontSize: '12px', textAlign: 'center', fontWeight: 500 }}>Spotify</span>
         </div>
-        <div className="doc-item" onClick={() => window.open("https://music.yandex.ru/users/lisasofd/playlists/1002", "_blank")}>
-          <div className="doc-icon-sq"><img src="/icon_yandex.png" alt="Yandex" /></div>
-          <span className="doc-label">Я.Музыка</span>
+        <div className="doc-item" onClick={() => window.open("https://music.yandex.ru/users/lisasofd/playlists/1002", "_blank")} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <div className="doc-icon-sq" style={{ width: '60px', height: '60px', borderRadius: '18px', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><img src="/icon_yandex.png" alt="Yandex" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>
+          <span className="doc-label" style={{ fontSize: '12px', textAlign: 'center', fontWeight: 500 }}>Я.Музыка</span>
         </div>
-        <div className="doc-item" onClick={() => setTab('recipes')}>
-          <div className="doc-icon-sq"><img src="/icon_recipes.png" alt="Recipes" /></div>
-          <span className="doc-label">Рецепты</span>
+        <div className="doc-item" onClick={() => setTab('recipes')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <div className="doc-icon-sq" style={{ width: '60px', height: '60px', borderRadius: '18px', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><img src="/icon_recipes.png" alt="Recipes" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>
+          <span className="doc-label" style={{ fontSize: '12px', textAlign: 'center', fontWeight: 500 }}>Рецепты</span>
         </div>
       </div>
     </div>
