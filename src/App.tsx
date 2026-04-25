@@ -338,6 +338,52 @@ export default function App() {
     setLoginError('');
 
     if (user.firstName && user.lastName && user.tgNick && user.email && user.password && user.birthDate) {
+      
+      // --- ВАЛИДАЦИЯ ДАННЫХ ПЕРЕД ОТПРАВКОЙ ---
+      if (user.firstName.trim().length < 2 || user.lastName.trim().length < 2) {
+        setLoginError('Пожалуйста, введите реальное имя и фамилию.');
+        return;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(user.email)) {
+        setLoginError('Введите корректный Email-адрес.');
+        return;
+      }
+
+      if (user.password.length < 5) {
+        setLoginError('Пароль должен быть не менее 5 символов.');
+        return;
+      }
+
+      const dateParts = user.birthDate.split('.');
+      if (dateParts.length !== 3 || user.birthDate.length !== 10) {
+        setLoginError('Введите дату в формате ДД.ММ.ГГГГ');
+        return;
+      }
+
+      const d = parseInt(dateParts[0], 10);
+      const m = parseInt(dateParts[1], 10);
+      const y = parseInt(dateParts[2], 10);
+      const currentYear = new Date().getFullYear();
+
+      if (m < 1 || m > 12) {
+        setLoginError('Неверный месяц рождения.');
+        return;
+      }
+      
+      const daysInMonth = new Date(y, m, 0).getDate();
+      if (d < 1 || d > daysInMonth) {
+        setLoginError(`В этом месяце ${daysInMonth} дн., неверный день.`);
+        return;
+      }
+      
+      if (y < 1920 || y >= currentYear - 5) {
+        setLoginError('Пожалуйста, введите реальный год рождения.');
+        return;
+      }
+      // --- КОНЕЦ ВАЛИДАЦИИ ---
+
       // Нормализуем ник для базы данных: убираем '@' и переводим в нижний регистр, чтобы избежать двойных регистраций
       const cleanTgNick = user.tgNick.trim().replace(/^@/, '').toLowerCase();
       const userKey = cleanTgNick || user.firstName.trim();
