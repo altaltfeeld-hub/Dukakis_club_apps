@@ -139,11 +139,25 @@ function ProfileTab({ user, onLogout }: { user: any, onLogout: () => void }) {
   return (
     <div className="fade-in" style={{ padding: '20px' }}>
       <div className="glass" style={{ width: '100%', padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <div className="logo-image-wrap" style={{ borderRadius: '40px', width: '80px', height: '80px' }}><img src="/logo_final.jpg" alt="Avatar" /></div>
+        <div className="logo-image-wrap" style={{ borderRadius: '40px', width: '80px', height: '80px', overflow: 'hidden' }}>
+          <img src="/logo_final.jpg" alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
         <h2 style={{ fontSize: '20px', fontWeight: '700' }}>{user.firstName} {user.lastName}</h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>@{user.tgNick}</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '-8px' }}>@{user.tgNick.replace('@', '')}</p>
+        
+        <div style={{ width: '100%', background: 'rgba(0,0,0,0.2)', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Дата рождения:</span>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>{user.birthDate}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Email:</span>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>{user.email}</span>
+          </div>
+        </div>
+
       </div>
-      <button className="main-btn secondary-btn" onClick={onLogout}>Выйти из аккаунта</button>
+      <button className="main-btn secondary-btn" onClick={onLogout} style={{ background: 'rgba(255, 75, 75, 0.15)', color: '#FF4B4B' }}>Выйти из аккаунта</button>
     </div>
   );
 }
@@ -324,7 +338,9 @@ export default function App() {
     setLoginError('');
 
     if (user.firstName && user.lastName && user.tgNick && user.email && user.password && user.birthDate) {
-      const userKey = user.tgNick || user.firstName;
+      // Нормализуем ник для базы данных: убираем '@' и переводим в нижний регистр, чтобы избежать двойных регистраций
+      const cleanTgNick = user.tgNick.trim().replace(/^@/, '').toLowerCase();
+      const userKey = cleanTgNick || user.firstName.trim();
 
       // Проверяем, существует ли пользователь с таким ником
       const existingDoc = await getDoc(doc(db, "users", userKey));
@@ -344,13 +360,13 @@ export default function App() {
           return;
         }
 
-        // ✅ ПРОВЕРКА ПАРОЛЯ: если пользователь уже зарегистрирован — требуем правильный пароль
+        // ПРОВЕРКА ПАРОЛЯ
         if (existingData.password !== user.password) {
           setLoginError('Неверный пароль. Этот ник уже зарегистрирован.');
           return;
         }
 
-        // Пароль совпал — входим под существующим аккаунтом
+        // Пароль совпал — скачиваем все данные пользователя из базы, игнорируя то, что он сейчас ввёл (например, другую дату)
         localStorage.setItem('clubUser', JSON.stringify(existingData));
         setUser(existingData as any);
         setIsAuthenticated(true);
@@ -360,11 +376,13 @@ export default function App() {
       // Новый пользователь — регистрация
       const userData = {
         ...user,
+        tgNick: cleanTgNick,
         status: 'active',
         registeredAt: new Date().toISOString(),
       };
       await setDoc(doc(db, "users", userKey), userData);
       localStorage.setItem('clubUser', JSON.stringify(userData));
+      setUser(userData as any);
       setIsAuthenticated(true);
     }
   };
