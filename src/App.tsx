@@ -401,13 +401,36 @@ export default function App() {
 
   if (!isAuthenticated) return (
     <div className="app-container">
-      <div className="auth-wrapper fade-in" style={{ padding: '100px 20px' }}>
-        <div className="glass auth-card" style={{ padding: 25 }}>
-          <h1 style={{ fontSize: 24, textAlign:'center', marginBottom: 20 }}>Dukalis Club</h1>
-          <form onSubmit={handleLogin} style={{ display:'flex', flexDirection:'column', gap: 15 }}>
+      <div className="auth-wrapper fade-in" style={{ padding: '60px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="glass auth-card" style={{ padding: '30px 20px', width: '100%', maxWidth: '400px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
+            <div style={{ width: 80, height: 80, borderRadius: 24, marginBottom: 16, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+              <img src="/logo_final.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+            <h1 style={{ fontSize: 24, textAlign: 'center', marginBottom: 8, fontWeight: 700 }}>Dukalis Club</h1>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', textAlign: 'center', maxWidth: 240, lineHeight: 1.4 }}>
+              Для приватности клуба регистрация выполняется только один раз.
+            </p>
+          </div>
+          <form onSubmit={handleLogin} style={{ display:'flex', flexDirection:'column', gap: 15, width: '100%' }}>
             <input ref={firstNameRef} type="text" className="input-field" placeholder="Имя" value={user.firstName} onChange={e => setUser({...user, firstName: e.target.value})} onKeyDown={e => e.key === 'Enter' && lastNameRef.current?.focus()} required />
             <input ref={lastNameRef} type="text" className="input-field" placeholder="Фамилия" value={user.lastName} onChange={e => setUser({...user, lastName: e.target.value})} onKeyDown={e => e.key === 'Enter' && birthDateRef.current?.focus()} required />
-            <div style={{ position:'relative' }}><CalendarDays size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={birthDateRef} type="text" className="input-field" placeholder="ДД.ММ.ГГГГ" style={{ paddingLeft: 44 }} value={user.birthDate} onChange={e => setUser({...user, birthDate: e.target.value})} onKeyDown={e => e.key === 'Enter' && tgNickRef.current?.focus()} required /></div>
+            <div style={{ position:'relative' }}>
+              <CalendarDays size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} />
+              <input ref={birthDateRef} type="text" className="input-field" placeholder="ДД.ММ.ГГГГ" style={{ paddingLeft: 44 }} value={user.birthDate} 
+                onChange={e => {
+                  let val = e.target.value.replace(/\D/g, ''); 
+                  if (val.length > 8) val = val.slice(0, 8);
+                  if (val.length >= 5) {
+                    val = `${val.slice(0, 2)}.${val.slice(2, 4)}.${val.slice(4)}`;
+                  } else if (val.length >= 3) {
+                    val = `${val.slice(0, 2)}.${val.slice(2)}`;
+                  }
+                  setUser({...user, birthDate: val});
+                }} 
+                onKeyDown={e => e.key === 'Enter' && tgNickRef.current?.focus()} required 
+              />
+            </div>
             <div style={{ position:'relative' }}><AtSign size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={tgNickRef} type="text" className="input-field" placeholder="Telegram" style={{ paddingLeft: 44 }} value={user.tgNick} onChange={e => setUser({...user, tgNick: e.target.value})} onKeyDown={e => e.key === 'Enter' && emailRef.current?.focus()} required /></div>
             <div style={{ position:'relative' }}><Mail size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={emailRef} type="email" className="input-field" placeholder="Email" style={{ paddingLeft: 44 }} value={user.email} onChange={e => setUser({...user, email: e.target.value})} onKeyDown={e => e.key === 'Enter' && passwordRef.current?.focus()} required /></div>
             <div style={{ position:'relative' }}><LockKeyhole size={16} style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', opacity:0.5 }} /><input ref={passwordRef} type="password" className="input-field" placeholder="Пароль" style={{ paddingLeft: 44 }} value={user.password} onChange={e => setUser({...user, password: e.target.value})} required /></div>
