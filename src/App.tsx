@@ -63,70 +63,85 @@ function HomeTab({ user, onGoProfile, setTab }: { user: any, onGoProfile: () => 
   const moscowTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
   const dayNum = moscowTime.getDate();
   const monthName = moscowTime.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', '');
-  const monthIndex = moscowTime.getMonth(); // 0 - 11
+  const monthIndex = moscowTime.getMonth();
   const CALENDAR_ID = "1411216cba515736814d4f56a1e419347f970d9e94d1dc041c9cc0986d1dd94e@group.calendar.google.com";
-  
+
   const themes = [
-    { title: "Зимняя перезагрузка" }, // 0
-    { title: "Любовь к себе" }, // 1
-    { title: "Весеннее пробуждение" }, // 2
-    { title: "Тело и здоровье" }, // 3 (Апрель)
-    { title: "Блогинг и рилсы" }, // 4 (Май)
-    { title: "Развитие бренда и креативность" }, // 5 (Июнь)
-    { title: "Финансовая грамотность и инвестиции" }, // 6 (Июль)
-    { title: "Сексуальное здоровье" }, // 7 (Август)
-    { title: "Косметология и биохакинг" }, // 8 (Сентябрь)
-    { title: "Родительство" }, // 9 (Октябрь)
-    { title: "Речь и публичные выступления" }, // 10 (Ноябрь)
-    { title: "Итоги года" }, // 11 (Декабрь)
+    { title: "Зимняя перезагрузка" }, { title: "Любовь к себе" }, { title: "Весеннее пробуждение" },
+    { title: "Тело и здоровье" }, { title: "Блогинг и рилсы" }, { title: "Развитие бренда и креативность" },
+    { title: "Финансовая грамотность и инвестиции" }, { title: "Сексуальное здоровье" }, { title: "Косметология и биохакинг" },
+    { title: "Родительство" }, { title: "Речь и публичные выступления" }, { title: "Итоги года" },
   ];
   const currentTheme = themes[monthIndex] || themes[0];
 
   return (
     <div className="home-screen fade-in">
-      <div className="home-header" onClick={onGoProfile} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      {/* Header */}
+      <div className="home-header" onClick={onGoProfile}>
         <div className="greeting-text">
-          <p className="greeting-sub" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Рады тебя видеть,</p>
-          <h2 className="greeting-name" style={{ fontSize: '24px', fontWeight: 700 }}>{user.firstName || 'Гостья'}! 👋</h2>
+          <p className="greeting-sub">Рады тебя видеть,</p>
+          <h2 className="greeting-name">{user.firstName || 'Гостья'}! 👋</h2>
         </div>
-        <div className="user-avatar-small" style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden' }}>
-          <img src={user.photoURL || "/logo_final.jpg"} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div className="user-avatar-small">
+          <img src={user.photoURL || "/logo_final.jpg"} alt="User" />
         </div>
       </div>
 
-      {/* Окно с темой месяца */}
-      <div className="glass theme-card" style={{ padding: '24px 20px', marginBottom: '20px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-        <div className="theme-tag" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.8, fontWeight: 600, color: 'var(--accent-teal)' }}>Тема месяца</div>
-        <h3 className="theme-title" style={{ fontSize: '22px', fontWeight: 700, lineHeight: 1.3 }}>{currentTheme.title}</h3>
+      {/* Тема месяца — Telegram-inspired */}
+      <div className="theme-card glass">
+        <div className="theme-accent-line" />
+        <div className="theme-card-body">
+          <span className="theme-pill">✦ Тема месяца</span>
+          <h3 className="theme-title">{currentTheme.title}</h3>
+        </div>
+        <div className="theme-month-badge">
+          <span className="theme-day-num">{dayNum}</span>
+          <span className="theme-month-str">{monthName}</span>
+        </div>
       </div>
 
-      <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '12px', marginBottom: '20px' }}>
-        <div className="glass date-tile" style={{ padding: '16px', borderRadius: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span className="day-num" style={{ fontSize: '28px', fontWeight: 700, lineHeight: 1 }}>{dayNum}</span>
-          <span className="month-name" style={{ fontSize: '13px', textTransform: 'uppercase', opacity: 0.7, marginTop: '4px' }}>{monthName}</span>
+      {/* Календарь — list-item style */}
+      <a
+        href={`https://calendar.google.com/calendar/u/0/r?src=${CALENDAR_ID}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="calendar-link glass"
+      >
+        <div className="cal-icon-wrap">
+          <CalendarDays size={20} />
         </div>
-        <a href={`https://calendar.google.com/calendar/u/0/r?src=${CALENDAR_ID}`} target="_blank" rel="noopener noreferrer" className="glass calendar-full-btn" style={{ padding: '0 20px', borderRadius: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
-          <span style={{ fontSize: '16px', fontWeight: 600 }}>Календарь клуба</span>
-          <ChevronRight size={20} style={{ opacity: 0.5 }} />
-        </a>
-      </div>
+        <div className="cal-text">
+          <span className="cal-title">Календарь клуба</span>
+          <span className="cal-sub">Расписание встреч</span>
+        </div>
+        <ChevronRight size={18} className="cal-arrow" />
+      </a>
 
-      <div className="doc-bar" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-        <a href="https://docs.google.com/spreadsheets/d/1uesCou32MDZhkhi8Q5myvROC2KBWiMbyn8ou1lH3Izo/edit" target="_blank" rel="noopener noreferrer" className="doc-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit' }}>
-          <div className="doc-icon-sq" style={{ width: '60px', height: '60px', borderRadius: '18px', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><img src="/icon_doctors.png" alt="Doctors" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>
-          <span className="doc-label" style={{ fontSize: '12px', textAlign: 'center', fontWeight: 500 }}>Врачи</span>
-        </a>
-        <div className="doc-item" onClick={() => window.open("https://open.spotify.com/playlist/2GOjsccJOAZxViZQhOhilF", "_blank")} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-          <div className="doc-icon-sq" style={{ width: '60px', height: '60px', borderRadius: '18px', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><img src="/icon_spotify.png" alt="Spotify" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>
-          <span className="doc-label" style={{ fontSize: '12px', textAlign: 'center', fontWeight: 500 }}>Spotify</span>
+      {/* Быстрые кнопки 3 + 2 */}
+      <div className="quick-actions">
+        <div className="qa-row">
+          <div className="qa-item" onClick={() => window.open('https://docs.google.com/spreadsheets/d/1uesCou32MDZhkhi8Q5myvROC2KBWiMbyn8ou1lH3Izo/edit', '_blank')}>
+            <div className="doc-icon-sq teal"><img src="/icon_doctors.png" alt="Врачи" /></div>
+            <span className="doc-label">Врачи</span>
+          </div>
+          <div className="qa-item" onClick={() => window.open('https://open.spotify.com/playlist/2GOjsccJOAZxViZQhOhilF', '_blank')}>
+            <div className="doc-icon-sq pink"><img src="/icon_spotify.png" alt="Spotify" /></div>
+            <span className="doc-label">Spotify</span>
+          </div>
+          <div className="qa-item" onClick={() => window.open('https://music.yandex.ru/users/lisasofd/playlists/1002', '_blank')}>
+            <div className="doc-icon-sq purple"><img src="/icon_yandex.png" alt="Я.Музыка" /></div>
+            <span className="doc-label">Я.Музыка</span>
+          </div>
         </div>
-        <div className="doc-item" onClick={() => window.open("https://music.yandex.ru/users/lisasofd/playlists/1002", "_blank")} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-          <div className="doc-icon-sq" style={{ width: '60px', height: '60px', borderRadius: '18px', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><img src="/icon_yandex.png" alt="Yandex" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>
-          <span className="doc-label" style={{ fontSize: '12px', textAlign: 'center', fontWeight: 500 }}>Я.Музыка</span>
-        </div>
-        <div className="doc-item" onClick={() => setTab('recipes')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-          <div className="doc-icon-sq" style={{ width: '60px', height: '60px', borderRadius: '18px', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><img src="/icon_recipes.png" alt="Recipes" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>
-          <span className="doc-label" style={{ fontSize: '12px', textAlign: 'center', fontWeight: 500 }}>Рецепты</span>
+        <div className="qa-row qa-centered">
+          <div className="qa-item" onClick={() => window.open('https://docs.google.com/document/d/1tBSUsrcwreYX4nVC34Ak_kOiCJyX_ESkzd2m1D3IO3k/edit?tab=t.0', '_blank')}>
+            <div className="doc-icon-sq gold"><img src="/icon_recipes.png" alt="Рецепты" /></div>
+            <span className="doc-label">Рецепты</span>
+          </div>
+          <div className="qa-item" onClick={() => window.open('https://docs.google.com/spreadsheets/d/11VH1-yMy3N9TbybvmzVwKKJ8LZwG8qGUFkU-BhkhJ-E/edit', '_blank')}>
+            <div className="doc-icon-sq rose"><img src="/icon_dukats.png" alt="База дукатов" /></div>
+            <span className="doc-label">База дукатов</span>
+          </div>
         </div>
       </div>
     </div>
@@ -540,7 +555,7 @@ export default function App() {
     <div className="app-container" style={{ position:'relative', height:'100vh' }}>
       <div className="scroll-area" style={{ height:'100%', overflowY:'auto', paddingBottom: 120 }}>
         {activeTab === 'home' && <HomeTab user={user} onGoProfile={() => setActiveTab('profile')} setTab={setActiveTab} />}
-        {activeTab === 'recipes' && <RecipesTab onBack={() => setActiveTab('home')} />}
+        {activeTab === 'recipes' && <HomeTab user={user} onGoProfile={() => setActiveTab('profile')} setTab={setActiveTab} />}
         {activeTab === 'profile' && <ProfileTab user={user} onLogout={handleLogout} />}
         {activeTab === 'admin' && isAdmin && <AdminTab />}
       </div>
